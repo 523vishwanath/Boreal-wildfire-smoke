@@ -107,7 +107,7 @@ The model matches its teacher (SAM) against human ground truth, while needing no
 
 <p align="center">
   <img src="docs/tracking_FP34.gif" width="560" alt="Dense fog near trees wrongly detected as smoke">
-  <br><em>The hard case: dense fog near trees, filmed from a fast-moving drone, is detected as smoke by the frame model.</em>
+  <br><em>The hard case: dense fog near trees, filmed from a fast-moving drone, is detected as smoke by the frame model. Video from the <a href="https://github.com/gaiasd/DFireDataset">D-Fire dataset</a>.</em>
 </p>
 
 **Findings:**
@@ -130,20 +130,17 @@ The next step is more negative video (fog and cloud footage, more Boreal sites) 
 
 Current alert rule: a track alerts when it has existed for at least 3 s, was visible in at least 60% of those frames, and its mean confidence over the last 2 s is at least 0.6 (adjustable in the UI). The temporal model will replace this rule once it beats it on held-out data.
 
+To run it, train the segmentation model first (section 3), then point the dashboard at your weights:
+
 ```bash
 pip install -r requirements.txt
-# download the weights into weights/ (see below), then:
-cd dashboard && python app.py
+cd dashboard
+SMOKE_WEIGHTS=/path/to/your/best.pt python app.py
 ```
 
 ## Weights
 
-Weights are not stored in git. Download them from this repo's **Releases** page into `weights/`:
-
-- `yolo26m_seg_smoke.pt`: segmentation model used by the dashboard
-- `yolo26m_det_smoke.pt`: detection model
-
-Or point the dashboard at your own file: `SMOKE_WEIGHTS=/path/to/best.pt python app.py`.
+Trained weights are not published in this repository. To reproduce them, follow the split, detection and segmentation steps above with the Boreal Forest Fire dataset. By default the dashboard looks for `weights/yolo26m_seg_smoke.pt`; you can override this with the `SMOKE_WEIGHTS` environment variable.
 
 ## Repository layout
 
@@ -155,7 +152,7 @@ temporal/       inventory_b.py, track_clips.py, run_video.py, auto_label.py,
 dashboard/      smoke_pipeline.py, app.py
 results/        metrics, curves, split manifest, track labels, feature tables
 docs/           images and GIFs used in this README
-weights/        trained models (downloaded separately)
+weights/        place your own trained models here (not included)
 ```
 
 The scripts were run on a RunPod RTX 4090 pod and use `/workspace/...` paths; adjust them to your own data locations.
@@ -169,6 +166,8 @@ The scripts were run on a RunPod RTX 4090 pod and use `/workspace/...` paths; ad
 ## Citation
 
 Pesonen, J., Raita-Hakola, A.-M., Joutsalainen, J., et al. (2025). *Boreal Forest Fire: UAV-collected Wildfire Detection and Smoke Segmentation Dataset.* Scientific Data, 12, 1419. https://doi.org/10.1038/s41597-025-05634-0
+
+The fog clip (FP34) is from the D-Fire surveillance videos: de Venâncio, P. V. A. B., Rezende, T. M., Lisboa, A. C., Barbosa, A. V. (2021). *Fire Detection based on a Two-Dimensional Convolutional Neural Network and Temporal Analysis.* IEEE Latin American Conference on Computational Intelligence (LA-CCI).
 
 ## Author
 

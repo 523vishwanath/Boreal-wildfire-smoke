@@ -1,1 +1,1 @@
-Put the trained weights here (see the README for the download link).
+Place your own trained weights here. They are not published in this repository.
