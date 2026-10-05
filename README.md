@@ -2,6 +2,11 @@
 
 Leak-free smoke detection and segmentation on the [Boreal Forest Fire](https://doi.org/10.1038/s41597-025-05634-0) UAV dataset, extended toward a video system that tracks smoke over time and raises alerts, with a web dashboard where you can upload a video.
 
+<p align="center">
+  <img src="docs/tracking_evo_6.gif" width="640" alt="YOLO26m-seg + BoT-SORT tracking smoke on a held-out test clip">
+  <br><em>Segmentation + tracking on a held-out test clip (4 fps). Each colour is one tracked smoke region.</em>
+</p>
+
 **Headline results (held-out videos):**
 
 | Task | Model | Result |
@@ -46,6 +51,19 @@ YOLO26m at 960 px, batch 16, cosine LR, 150 epochs with early stopping, small hu
 
 Inference is about 6.4 ms per image at 960 px on an RTX 4090.
 
+| Ground truth (test) | Prediction (test) |
+| --- | --- |
+| ![Detection ground truth](docs/det_test_labels.jpg) | ![Detection predictions](docs/det_test_pred.jpg) |
+
+<details>
+<summary>Training curves and precision-recall curve</summary>
+
+![Detection training curves](results/detection/yolo26m_960/results.png)
+
+![Detection PR curve on test](results/detection/yolo26m_960_test/BoxPR_curve.png)
+
+</details>
+
 **Fixing a 7% GPU utilisation bottleneck:** AutoBatch picked batch 4, and the CPU couldn't decode 4K JPEGs fast enough. Pre-resizing every image once to 960 px (`detection/resize_dataset.py`) and setting batch 16 cut epoch time from about 9 minutes to about 2.
 
 ## 3. Segmentation
@@ -59,6 +77,10 @@ Inference is about 6.4 ms per image at 960 px on an RTX 4090.
 | Held-out videos (mostly SAM labels) | 288 | 0.868 | 0.542 | 0.615 | 0.469 |
 | Hand-drawn masks, held-out videos | 11 | 0.661 | 0.727 | 0.570 | 0.304 |
 
+| Ground truth (test) | Prediction (test) |
+| --- | --- |
+| ![Segmentation ground truth](docs/seg_test_labels.jpg) | ![Segmentation predictions](docs/seg_test_pred.jpg) |
+
 Instance mAP understates quality for smoke, because SAM often splits one plume into several blobs. Pixel-level evaluation (`segmentation/eval_pixel.py`):
 
 | Comparison | Smoke images | Mean IoU | Median IoU | Overall IoU |
@@ -68,6 +90,10 @@ Instance mAP understates quality for smoke, because SAM often splits one plume i
 | SAM vs the same hand-drawn masks | 11 | 0.628 | 0.715 | |
 
 The model matches its teacher (SAM) against human ground truth, while needing no prompts and running in about 13 ms per image. Smoke was predicted on 1 of 18 smoke-free test frames.
+
+**Failure case:** the worst test frames are ones where the model misses the smoke completely (left: image, right: overlay; green = missed smoke, red = extra prediction, yellow = correct).
+
+![Segmentation failure case](results/segmentation/worst_cases/00_iou0.00_evoDJI_0001_frame0.jpg)
 
 ## 4. Temporal analysis (in progress)
 
@@ -79,6 +105,11 @@ The model matches its teacher (SAM) against human ground truth, while needing no
 - **Automatic track labels:** matched clip frames to Subset A's human-annotated frames (786 of 931 matched) and voted per track: 53 smoke, 10 false alarm. The matching also maps every clip to its source drone video, so clips inherit the leak-free split.
 - **Behaviour features** with drone motion removed: growth, base drift, optical-flow coherence and entropy inside the mask, brightness relative to surroundings, and motion relative to a background ring.
 
+<p align="center">
+  <img src="docs/tracking_FP34.gif" width="560" alt="Dense fog near trees wrongly detected as smoke">
+  <br><em>The hard case: dense fog near trees, filmed from a fast-moving drone, is detected as smoke by the frame model.</em>
+</p>
+
 **Findings:**
 
 | Finding | Evidence |
@@ -88,6 +119,8 @@ The model matches its teacher (SAM) against human ground truth, while needing no
 | **Motion features learned drone speed (a shortcut)** | Smoke filmed at the same camera speed as the fog clip drifts just as much (base drift 0.044 vs 0.042); camera speed vs drift correlation 0.59 |
 | Consistent separators across all false-alarm types | Smoke has higher confidence, churns more (lower flow coherence, higher entropy) and is brighter than its surroundings |
 | With 12 false-alarm tracks, track confidence beats behaviour features | Leave-one-video-out AUC: confidence 0.758, behaviour 0.649, behaviour + drift 0.671 |
+
+![Fog vs smoke features over time](results/temporal/fog_vs_smoke.png)
 
 The next step is more negative video (fog and cloud footage, more Boreal sites) before training a GRU / temporal CNN.
 
@@ -121,6 +154,7 @@ temporal/       inventory_b.py, track_clips.py, run_video.py, auto_label.py,
                 extract_features.py, compare_features.py, train_baseline.py, botsort_smoke.yaml
 dashboard/      smoke_pipeline.py, app.py
 results/        metrics, curves, split manifest, track labels, feature tables
+docs/           images and GIFs used in this README
 weights/        trained models (downloaded separately)
 ```
 
