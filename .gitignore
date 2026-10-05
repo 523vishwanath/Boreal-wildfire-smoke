@@ -1,0 +1,14 @@
+*.pt
+*.pth
+*.onnx
+*.engine
+*.mp4
+*.mov
+*.zip
+*.jsonl
+data/
+runs/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
